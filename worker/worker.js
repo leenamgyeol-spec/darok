@@ -9,10 +9,11 @@
 */
 
 const MAX_TEXT = 500, MAX_NAME = 20, DEFAULT_NAME = '차갤러', ADMIN_NAME = '관리자';
-const RATE_GAP = 20 * 1000;            // 글과 글 사이 최소 간격
-const RATE_WINDOW = 10 * 60 * 1000;    // 이 시간 동안
-const RATE_MAX = 5;                    // 최대 이만큼 새 글 쓰기 가능
-const RATE_MAX_EDIT = 15;              // 수정·삭제 시도(비밀번호 맞히기 방지 포함)
+const RATE_GAP = 3 * 1000;             // 글과 글 사이 최소 간격 (실수로 두 번 누르는 것 방지)
+const RATE_WINDOW = 60 * 1000;         // 새 글: 1분 동안
+const RATE_MAX = 5;                    // 최대 5개
+const RATE_WINDOW_EDIT = 10 * 60 * 1000; // 수정·삭제 시도: 10분 동안 (비밀번호 맞히기 방지)
+const RATE_MAX_EDIT = 15;                // 최대 15번
 const PBKDF2_ITER = 5000;              // 무료 요금제 CPU 한도(10ms) 안에서 돌도록 낮게, 대신 PEPPER로 보완
 
 export default {
@@ -126,12 +127,13 @@ async function rateLimit(env, ip, isAdmin, kind = 'post') {
   const key = (kind === 'post' ? 'rl:' : 'rle:') + (await sha256Hex(ip + '|' + (env.PEPPER || ''))).slice(0, 32);
   const now = Date.now();
   let times = [];
-  try { times = JSON.parse((await env.RATE.get(key)) || '[]').filter((t) => now - t < RATE_WINDOW); } catch (e) {}
+  const win = kind === 'post' ? RATE_WINDOW : RATE_WINDOW_EDIT;
+  try { times = JSON.parse((await env.RATE.get(key)) || '[]').filter((t) => now - t < win); } catch (e) {}
   const last = times.length ? Math.max(...times) : 0;
   if (kind === 'post' && now - last < RATE_GAP) throw new UserError(`너무 빨리 쓰고 있습니다. ${Math.ceil((RATE_GAP - (now - last)) / 1000)}초 뒤에 다시 시도하십시오.`, 429);
-  if (times.length >= (kind === 'post' ? RATE_MAX : RATE_MAX_EDIT)) throw new UserError(kind === 'post' ? '짧은 시간에 너무 많이 썼습니다. 10분쯤 뒤에 다시 시도하십시오.' : '수정·삭제를 너무 많이 시도했습니다. 10분쯤 뒤에 다시 시도하십시오.', 429);
+  if (times.length >= (kind === 'post' ? RATE_MAX : RATE_MAX_EDIT)) throw new UserError(kind === 'post' ? '1분에 5개까지만 쓸 수 있습니다. 잠시 뒤에 다시 시도하십시오.' : '수정·삭제를 너무 많이 시도했습니다. 10분쯤 뒤에 다시 시도하십시오.', 429);
   times.push(now);
-  await env.RATE.put(key, JSON.stringify(times), { expirationTtl: Math.ceil(RATE_WINDOW / 1000) + 60 });
+  await env.RATE.put(key, JSON.stringify(times), { expirationTtl: Math.ceil(win / 1000) + 60 });
 }
 
 /* ── GitHub 저장소의 board.json 읽기/쓰기 ── */
