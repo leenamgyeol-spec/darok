@@ -1,0 +1,13 @@
+name = "darok-board"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+DATA_REPO = "leenamgyeol-spec/darok-data"
+DATA_PATH = "board.json"
+ALLOWED_ORIGINS = "https://leenamgyeol-spec.github.io,http://localhost:8765"
+
+# 도배 방지용 KV — `npx wrangler kv namespace create RATE` 결과의 id로 바꿉니다.
+[[kv_namespaces]]
+binding = "RATE"
+id = "0f4282147d1941bb898cf428572f0d48"
