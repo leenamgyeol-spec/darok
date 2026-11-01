@@ -1,0 +1,64 @@
+{
+ "app": "darok",
+ "kind": "shared-records",
+ "version": 1,
+ "owner": "관리자",
+ "updatedAt": "2026-11-01T07:46:51.190Z",
+ "ratings": {
+  "cn-tieluohan": {
+   "v": 5,
+   "t": 1793518901889
+  },
+  "cn-keemun": {
+   "v": 2,
+   "t": 1793518921322
+  },
+  "cn-baihao-yinzhen": {
+   "v": 4,
+   "t": 1793518972955
+  },
+  "cn-wuyi-rougui": {
+   "v": 4.5,
+   "t": 1793519028583
+  },
+  "cn-lapsang": {
+   "v": 4.5,
+   "t": 1793519053224
+  },
+  "cn-dc-milanxiang": {
+   "v": 3.5,
+   "t": 1793519142170
+  }
+ },
+ "notes": {
+  "cn-tieluohan": {
+   "text": "이거 지린다이",
+   "t": 1793518901811
+  },
+  "cn-keemun": {
+   "text": "기문향인지 그딴거 잘 모르겠고 잎이 너무 작아서 차를 마시는지 씹는지 모르겠음",
+   "t": 1793518945036
+  },
+  "cn-baihao-yinzhen": {
+   "text": "잎이 귀엽게 생김 맛은 그냥 쏘쏘",
+   "t": 1793518984102
+  },
+  "cn-wuyi-rougui": {
+   "text": "복숭아 육계, 복숭아향은 잘 안느껴지지만 탄배가 좋음",
+   "t": 1793519027616
+  },
+  "cn-lapsang": {
+   "text": "치자꽃 정산소종, 무이암차들이랑 비슷한 탄배가 올라옴 맛있음",
+   "t": 1793519089449
+  },
+  "cn-dc-milanxiang": {
+   "text": "봉황단총 밀란향 고급, 난초향이 자그나마 느껴짐",
+   "t": 1793519142098
+  }
+ },
+ "brewed": {},
+ "favorites": {
+  "cn-fenghuang-dancong": true
+ },
+ "userTeas": {}
+}
