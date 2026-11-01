@@ -3310,10 +3310,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     }
     return { people: names, out };
   }
-  function ago(ms) {
-    const d = Math.floor((Date.now() - ms) / 86400000);
-    if (d < 1) return '오늘'; if (d < 2) return '어제'; if (d < 7) return d + '일 전'; if (d < 31) return Math.floor(d / 7) + '주 전'; if (d < 365) return Math.floor(d / 30) + '개월 전'; return Math.floor(d / 365) + '년 전';
-  }
+
   function vReviews() {
     const R = S.rev, { people, out } = reviewEntries();
     if (R.who && !people.includes(R.who)) R.who = '';
@@ -3321,22 +3318,18 @@ and do not perform the modification. Unauthorized copying, modification or redis
     const rv = (e) => (e.r ? e.r.v : -1);
     const cmp = { new: (a, b) => b.time - a.time, old: (a, b) => a.time - b.time, high: (a, b) => rv(b) - rv(a) || b.time - a.time, low: (a, b) => (rv(a) < 0) - (rv(b) < 0) || rv(a) - rv(b) || b.time - a.time }[R.sort] || ((a, b) => b.time - a.time);
     list = list.slice().sort(cmp);
-    const byTime = R.sort === 'new' || R.sort === 'old';
-    const month = (ms) => { const d = new Date(ms); return ms ? d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월' : '날짜 미상'; };
-    let lastM = '';
     const rows = list.slice(0, R.n).map((e) => {
       let h = '';
-      if (byTime) { const m = month(e.time); if (m !== lastM) { lastM = m; h += `<h3 class="revmonth">${m}</h3>`; } }
       if (e.board) return h + Board.cardHtml(e.board, true);
       return h + `<article class="rev${e.me ? ' me' : ''}">
-        <div class="revh"><b class="who">${esc(e.who)}</b>${e.time ? `<time datetime="${new Date(e.time).toISOString()}" title="${esc(new Date(e.time).toLocaleString('ko-KR'))}">${new Date(e.time).toLocaleDateString('ko-KR')} · ${ago(e.time)}</time>` : ''}</div>
+        <div class="revh"><b class="who">${esc(e.who)}</b></div>
         <button class="revtea" data-open="${esc(e.t.id)}"><span class="dot" style="background:${colorOf(e.t)}"></span><b>${esc(e.t.nameKo)}</b>${e.t.originalName ? `<span class="han" lang="zh">${esc(e.t.originalName)}</span>` : ''}<span class="faint">${esc(catOf(e.t).ko)}</span></button>
         ${e.r ? `<div class="rateline">${starsView(e.r.v, true)}<b class="num">${e.r.v.toFixed(1)}</b></div>` : ''}
         ${e.n ? `<p class="revtxt">${esc(e.n.text)}</p>` : ''}
       </article>`;
     }).join('');
     const counts = {}; out.forEach((e) => (counts[e.who] = (counts[e.who] || 0) + 1));
-    return `<h1 style="font-size:28px">전체 리뷰</h1><p class="muted" style="margin:6px 0 0">나와 ${S.others.length ? '불러온 ' + S.others.length + '명' : '다른 사람'}이 남긴 별점과 후기, 리뷰 게시판의 글을 남긴 시기와 함께 모아 봅니다. 리뷰는 차 상세 화면의 "리뷰"에서 닉네임과 비밀번호로 남깁니다.${Board.on() ? ' <button class="lnk" data-bload>새로고침</button>' : ''}</p>
+    return `<h1 style="font-size:28px">전체 리뷰</h1><p class="muted" style="margin:6px 0 0">나와 ${S.others.length ? '불러온 ' + S.others.length + '명' : '다른 사람'}이 남긴 별점과 후기, 리뷰 게시판의 글을 한곳에 모아 봅니다. 리뷰는 차 상세 화면의 "리뷰"에서 닉네임과 비밀번호로 남깁니다.${Board.on() ? ' <button class="lnk" data-bload>새로고침</button>' : ''}</p>
       <div class="revbar">
         <div class="chips" role="group" aria-label="사람별로 보기"><button class="chip" data-rev-who="" aria-pressed="${!R.who}">모두 <span class="num">${out.length}</span></button>${people.filter((w) => counts[w] || R.who === w).map((w) => `<button class="chip" data-rev-who="${esc(w)}" aria-pressed="${R.who === w}">${esc(w)} <span class="num">${counts[w] || 0}</span></button>`).join('')}</div>
         <label class="sr" for="rev-sort">정렬</label><select id="rev-sort" data-rev-sort><option value="new"${R.sort === 'new' ? ' selected' : ''}>최신순</option><option value="old"${R.sort === 'old' ? ' selected' : ''}>오래된순</option><option value="high"${R.sort === 'high' ? ' selected' : ''}>별점 높은순</option><option value="low"${R.sort === 'low' ? ' selected' : ''}>별점 낮은순</option></select>
@@ -4157,7 +4150,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     const list = S.others.filter((o) => Object.keys(o.ratings).length || Object.keys(o.notes).length);
     if (!list.length) return '';
     return `<section class="sec"><div class="sec-h"><h2>다른 사람의 차 기록</h2><button class="more" data-shared-go="1">전체 보기 ${I('chev', 'sm')}</button></div>
-      <div class="others">${list.map((o) => { const rs = Object.values(o.ratings); return `<button class="other" data-shared-go="1"><b>${esc(o.owner)}</b><span class="statline"><span class="s"><b class="num">${rs.length}</b><span>별점</span></span><span class="s"><b class="num">${rs.length ? (rs.reduce((a, r) => a + r.v, 0) / rs.length).toFixed(1) : '—'}</b><span>평균</span></span><span class="s"><b class="num">${Object.keys(o.notes).length}</b><span>후기</span></span></span><small class="faint">${o.updatedAt ? esc(new Date(o.updatedAt).toLocaleString('ko-KR')) + ' 업데이트' : ''}</small></button>`; }).join('')}</div></section>`;
+      <div class="others">${list.map((o) => { const rs = Object.values(o.ratings); return `<button class="other" data-shared-go="1"><b>${esc(o.owner)}</b><span class="statline"><span class="s"><b class="num">${rs.length}</b><span>별점</span></span><span class="s"><b class="num">${rs.length ? (rs.reduce((a, r) => a + r.v, 0) / rs.length).toFixed(1) : '—'}</b><span>평균</span></span><span class="s"><b class="num">${Object.keys(o.notes).length}</b><span>후기</span></span></span></button>`; }).join('')}</div></section>`;
   }
 
 
@@ -4191,7 +4184,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
       catch (e) { st.err = e.message; }
       st.loading = false; st.loaded = true; draw();
     }
-    const fmtWhen = (r) => `<time datetime="${new Date(r.t).toISOString()}" title="${esc(new Date(r.t).toLocaleString('ko-KR'))}">${new Date(r.t).toLocaleDateString('ko-KR')} · ${ago(r.t)}${r.edited ? ' · 수정됨' : ''}</time>`;
+    const fmtWhen = (r) => (r.edited ? '<span class="faint" style="font-size:12.5px">수정됨</span>' : ''); // 공개 화면에는 날짜를 보여 주지 않음 (관리 페이지에는 표시)
     function cardHtml(r, withTea) {
       const t = tea(r.teaId), mode = st.edit && st.edit.id === r.id ? st.edit.mode : '';
       const body = mode === 'edit'
@@ -4228,7 +4221,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     }
     function recCard(e) { /* 불러온 기록(관리자·친구)의 리뷰: 게시판 글이 아니라 수정·삭제 버튼 없음 */
       return `<article class="rev">
-        <div class="revh"><b class="who">${esc(e.who)}</b>${e.time ? `<time datetime="${new Date(e.time).toISOString()}" title="${esc(new Date(e.time).toLocaleString('ko-KR'))}">${new Date(e.time).toLocaleDateString('ko-KR')} · ${ago(e.time)}</time>` : ''}</div>
+        <div class="revh"><b class="who">${esc(e.who)}</b></div>
         ${e.r ? `<div class="rateline">${starsView(e.r.v, true)}<b class="num">${e.r.v.toFixed(1)}</b></div>` : ''}${e.n ? `<p class="revtxt">${esc(e.n.text)}</p>` : ''}
       </article>`;
     }
