@@ -470,6 +470,17 @@ details.adv[open] summary { margin-bottom: 12px; }
 .rev.board { border-left-color: var(--sage); }
 .rev.adm { border-left-color: var(--deep); }
 .rev.adm .who { color: var(--deep); }
+.avgline { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 0; background: none; border: 0; font: inherit; font-size: 14px; color: var(--fg2); cursor: pointer; }
+.avgline b { color: var(--fg); font-size: 16px; }
+.avgline:hover span { text-decoration: underline; text-underline-offset: 3px; }
+.rsum { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; max-width: 640px; margin-bottom: 14px; }
+.rsum-big { display: grid; justify-items: start; gap: 2px; }
+.rsum-big > b { font-family: var(--f-display); font-size: 40px; font-weight: 600; line-height: 1; }
+.rsum-big small { font-size: 12.5px; color: var(--fg3); }
+.rsum-bars { flex: 1; min-width: 180px; display: grid; gap: 4px; }
+.rb { display: grid; grid-template-columns: 28px 1fr 22px; gap: 8px; align-items: center; font-size: 12px; color: var(--fg3); }
+.rb i { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.rb em { display: block; height: 100%; background: var(--star); border-radius: 3px; }
 .sharednote { margin: -6px 0 6px 28px; font-size: 13px; color: var(--fg2); }
 
 .logrow { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
@@ -3120,7 +3131,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     const srcs = (t.sourceKeys || []).map((k) => D.sources[k]).filter(Boolean);
     const caf = hasCaf(t);
     const cafText = t.caffeineNote || (caf === true ? '카페인이 들어 있습니다. 함량은 원료 부위(싹·잎·줄기), 품종, 가공, 그리고 찻잎 양·물 온도·우림 시간에 따라 크게 달라 차종만으로 수치를 정할 수 없습니다.' : caf === false ? '카페인이 없는 원료입니다.' : '');
-    const toc = [['about', '이 차에 대하여'], ['taste', '향과 맛'], ['brew', '우리는 방법'], ['steeps', '여러 번 우리기'], ['history', '역사와 제법'], ['similar', '비슷한 차'], ['board', '리뷰'], ['rate', '나의 평가']];
+    const toc = [['about', '이 차에 대하여'], ['taste', '향과 맛'], ['brew', '우리는 방법'], ['steeps', '여러 번 우리기'], ['history', '역사와 제법'], ['similar', '비슷한 차'], ['board', '모두의 리뷰'], ['rate', '나의 평가']];
     let n = 0; const no = (id, label) => `<div class="no">${String(++n).padStart(2, '0')}<b>${label}</b></div>`;
     return `<button class="back" data-act="back">${I('back', 'sm')} 돌아가기</button>
     <article style="--acc:${accOf(t)}">
@@ -3130,6 +3141,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
         <h1>${esc(t.nameKo)}</h1>
         <div class="loc">${esc(t.country)}${t.region ? ' · ' + esc(t.region) : ''}</div>
         <div class="en">${esc(t.nameEn || '')}${t.nameEn ? ' · ' : ''}${esc(c.en)}</div>
+        ${Board.avgLine(t.id)}
         <div class="row" style="margin-top:12px;gap:6px">
           <span class="tag">${esc(c.ko)}</span>${sec2.map((s) => `<span class="tag">${esc(s)}</span>`).join('')}
           ${kindLabel(t) ? `<span class="pill">${esc(kindLabel(t))}</span>` : ''}${t.builtin ? '' : '<span class="pill user">사용자 추가 차</span>'}${t.brand ? `<span class="pill">${esc(t.brand)}</span>` : ''}
@@ -3195,13 +3207,12 @@ and do not perform the modification. Unauthorized copying, modification or redis
       <p class="disclaim">같은 계열·분류·산지와 향미 프로필의 유사도를 계산해 고른 결과입니다.</p>
     </div></section>
 
-    <section class="dsec" id="d-board">${no('board', '리뷰')}<div style="min-width:0">${Board.teaHtml(t.id)}</div></section>
+    <section class="dsec" id="d-board">${no('board', '모두의 리뷰')}<div style="min-width:0">${Board.teaHtml(t.id)}</div></section>
 
     <section class="dsec" id="d-rate">${no('rate', '나의 평가')}<div style="min-width:0">
       <div data-rate-box="${esc(t.id)}">${starsInput(t.id)}</div>
       <label class="f" style="margin-top:16px;max-width:560px">한 줄 메모 (선택)<textarea id="note-${esc(t.id)}" data-note="${esc(t.id)}" maxlength="500" style="min-height:64px" placeholder="예: 두 번째 우림이 가장 좋았음">${esc(S.notes[t.id] ? S.notes[t.id].text : '')}</textarea></label>
-      <p class="disclaim">나의 평가는 이 기기에만 저장되는 개인 기록입니다. 다른 사람에게 보이게 하려면 위 "리뷰"에 남기십시오. 별점은 누르는 즉시, 메모는 입력란에서 벗어나면 저장됩니다. 왼쪽 절반을 누르면 0.5점입니다.${Sync.on() ? ' GitHub에 자동으로 올라갑니다.' : ''}</p>
-      ${sharedLine(t.id)}
+      <p class="disclaim">나의 평가는 이 기기에만 저장되는 개인 기록입니다. 다른 사람에게 보이게 하려면 위 "모두의 리뷰"에 남기십시오. 별점은 누르는 즉시, 메모는 입력란에서 벗어나면 저장됩니다. 왼쪽 절반을 누르면 0.5점입니다.${Sync.on() ? ' GitHub에 자동으로 올라갑니다.' : ''}</p>
     </div></section>
     </article>`;
   }
@@ -4121,13 +4132,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     }
     return changed;
   }
-  function sharedLine(id) {
-    return S.others.map((o) => {
-      const r = o.ratings[id], n = o.notes && o.notes[id];
-      if (!r && !n) return '';
-      return `<div class="sharedbox"><div class="eyebrow" style="text-transform:none;letter-spacing:.06em">${esc(o.owner)}의 기록</div>${r ? `<div class="rateline">${starsView(r.v, true)}<b class="num">${r.v.toFixed(1)}</b><span class="faint" style="font-size:12.5px">${new Date(r.t).toLocaleDateString('ko-KR')}</span></div>` : ''}${n ? `<p style="margin:6px 0 0">${esc(n.text)}</p>` : ''}</div>`;
-    }).join('');
-  }
+
   function othersHomeHtml() {
     const list = S.others.filter((o) => Object.keys(o.ratings).length || Object.keys(o.notes).length);
     if (!list.length) return '';
@@ -4184,15 +4189,40 @@ and do not perform the modification. Unauthorized copying, modification or redis
         ${mode ? '' : `<div class="bact"><button class="lnk" data-bedit="${esc(r.id)}">수정</button><button class="lnk" data-bdel="${esc(r.id)}">삭제</button></div>`}
       </article>`;
     }
+    /* 이 차에 대한 다른 사람들의 리뷰: 게시판 글 + 불러온 기록(관리자·친구). 내 기기 기록은 '나의 평가'에 따로 있음 */
+    const teaEntries = (teaId) => reviewEntries().out.filter((e) => !e.me && e.t.id === teaId).sort((a, b) => b.time - a.time);
+    function stats(teaId) {
+      const es = teaEntries(teaId), vs = es.filter((e) => e.r).map((e) => e.r.v);
+      const dist = [0, 0, 0, 0, 0, 0]; vs.forEach((v) => dist[Math.min(5, Math.max(1, Math.round(v)))]++);
+      return { es, n: es.length, rated: vs.length, avg: vs.length ? vs.reduce((a, v) => a + v, 0) / vs.length : 0, dist };
+    }
+    function avgLine(teaId) {
+      const s = stats(teaId);
+      return `<button class="avgline" data-jump="d-board">${s.rated ? `${starsView(s.avg, true)}<b class="num">${s.avg.toFixed(1)}</b><span>리뷰 ${s.n}개</span>` : `<span>${s.n ? '리뷰 ' + s.n + '개' : '아직 리뷰가 없습니다 · 첫 리뷰 쓰기'}</span>`}</button>`;
+    }
+    function summaryHtml(s) {
+      if (!s.n) return '';
+      const max = Math.max(1, ...s.dist);
+      return `<div class="rsum"><div class="rsum-big"><b class="num">${s.rated ? s.avg.toFixed(1) : '—'}</b>${s.rated ? starsView(s.avg, true) : ''}<small>리뷰 ${s.n}개${s.rated !== s.n ? ` · 별점 ${s.rated}개` : ''}</small></div>
+        <div class="rsum-bars">${[5, 4, 3, 2, 1].map((k) => `<div class="rb"><span>${k}점</span><i><em style="width:${(s.dist[k] / max) * 100}%"></em></i><span class="num">${s.dist[k]}</span></div>`).join('')}</div></div>`;
+    }
+    function recCard(e) { /* 불러온 기록(관리자·친구)의 리뷰: 게시판 글이 아니라 수정·삭제 버튼 없음 */
+      return `<article class="rev">
+        <div class="revh"><b class="who">${esc(e.who)}</b>${e.time ? `<time datetime="${new Date(e.time).toISOString()}" title="${esc(new Date(e.time).toLocaleString('ko-KR'))}">${new Date(e.time).toLocaleDateString('ko-KR')} · ${ago(e.time)}</time>` : ''}</div>
+        ${e.r ? `<div class="rateline">${starsView(e.r.v, true)}<b class="num">${e.r.v.toFixed(1)}</b></div>` : ''}${e.n ? `<p class="revtxt">${esc(e.n.text)}</p>` : ''}
+      </article>`;
+    }
     function teaHtml(teaId) {
-      if (!BOARD_URL) return '<div class="empty">리뷰 게시판 서버가 아직 연결되지 않았습니다.</div>';
-      const mine = st.list.filter((r) => r.teaId === teaId).sort((a, b) => b.t - a.t);
-      return `<form class="bform" data-bform="${esc(teaId)}">
+      const s = stats(teaId);
+      const list = s.es.map((e) => (e.board ? cardHtml(e.board, false) : recCard(e))).join('');
+      const empty = st.err && BOARD_URL && !st.list.length && !list ? `<div class="empty">${esc(st.err)}</div>` : BOARD_URL && !st.loaded && !list ? '<p class="muted">리뷰를 불러오는 중…</p>' : '<div class="empty">아직 이 차의 리뷰가 없습니다. 첫 리뷰를 남겨 보세요.</div>';
+      if (!BOARD_URL) return summaryHtml(s) + `<div class="blist">${list || '<div class="empty">리뷰 게시판 서버가 아직 연결되지 않았습니다.</div>'}</div>`;
+      return summaryHtml(s) + `<form class="bform" data-bform="${esc(teaId)}">
           <div class="bf-row"><label class="f">닉네임<input type="text" name="name" maxlength="20" value="${esc(nick())}" autocomplete="off"></label><label class="f">비밀번호<input name="password" type="password" maxlength="64" required autocomplete="new-password" placeholder="4자 이상"></label><label class="f">별점<select name="v">${vOpts(null)}</select></label></div>
           <label class="f">내용<textarea name="text" maxlength="500" placeholder="이 차 어땠나요?"></textarea></label>
           <div class="row"><button class="btn pri" type="submit" ${st.busy ? 'disabled' : ''}>리뷰 등록</button><span class="faint" style="font-size:12.5px">비밀번호는 글을 고치거나 지울 때 씁니다. 잊으면 되찾을 수 없습니다.</span></div>
         </form>
-        <div class="blist">${st.err && !st.list.length ? `<div class="empty">${esc(st.err)}</div>` : !st.loaded ? '<p class="muted">리뷰를 불러오는 중…</p>' : mine.length ? mine.map((r) => cardHtml(r, false)).join('') : '<div class="empty">아직 이 차의 리뷰가 없습니다. 첫 리뷰를 남겨 보세요.</div>'}</div>`;
+        <div class="blist">${list || empty}</div>`;
     }
     function nickHtml() {
       return `<section class="sec"><div class="sec-h"><h2>리뷰 닉네임</h2></div>
@@ -4236,7 +4266,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
       if (t.closest('[data-bload]')) { load(); toast('새로 불러오는 중…'); return true; }
       return false;
     }
-    return { load, teaHtml, cardHtml, nickHtml, submit, click, list: () => st.list, on: () => !!BOARD_URL };
+    return { load, teaHtml, avgLine, cardHtml, nickHtml, submit, click, list: () => st.list, on: () => !!BOARD_URL };
   })();
 
   /* ───────── 시작 ───────── */
