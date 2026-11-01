@@ -488,6 +488,17 @@ details.adv[open] summary { margin-bottom: 12px; }
 .arow input[type=checkbox] { width: 18px; height: 18px; margin-top: 3px; }
 .arow > div { display: grid; gap: 4px; }
 .arow .revh time { font-size: 12.5px; color: var(--fg3); }
+.tnote { max-width: 640px; margin-bottom: 16px; padding: 16px 18px; border-radius: 10px; background: color-mix(in srgb, var(--sage) 12%, var(--paper)); border: 1px solid color-mix(in srgb, var(--sage) 35%, var(--line)); display: grid; gap: 10px; }
+.tnote-h { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.tnote-h b { font-family: var(--f-display); font-size: 16px; color: var(--deep); }
+.tnote-h span { font-size: 12px; color: var(--fg3); }
+.tnote-lead { margin: 0; font-size: 14.5px; }
+.tnote-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.tnote-row small { font-size: 12.5px; color: var(--fg3); }
+.tnote-row p, .tnote-row ul { margin: 0; font-size: 14px; }
+.tnote-row ul { padding-left: 18px; }
+@media (max-width: 560px) { .tnote-row { grid-template-columns: 1fr; gap: 2px; } }
+.empty.firstrev { line-height: 1.7; }
 .sharednote { margin: -6px 0 6px 28px; font-size: 13px; color: var(--fg2); }
 
 .logrow { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
@@ -3327,10 +3338,10 @@ and do not perform the modification. Unauthorized copying, modification or redis
     const counts = {}; out.forEach((e) => (counts[e.who] = (counts[e.who] || 0) + 1));
     return `<h1 style="font-size:28px">전체 리뷰</h1><p class="muted" style="margin:6px 0 0">나와 ${S.others.length ? '불러온 ' + S.others.length + '명' : '다른 사람'}이 남긴 별점과 후기, 리뷰 게시판의 글을 남긴 시기와 함께 모아 봅니다. 리뷰는 차 상세 화면의 "리뷰"에서 닉네임과 비밀번호로 남깁니다.${Board.on() ? ' <button class="lnk" data-bload>새로고침</button>' : ''}</p>
       <div class="revbar">
-        <div class="chips" role="group" aria-label="사람별로 보기"><button class="chip" data-rev-who="" aria-pressed="${!R.who}">모두 <span class="num">${out.length}</span></button>${people.map((w) => `<button class="chip" data-rev-who="${esc(w)}" aria-pressed="${R.who === w}">${esc(w)} <span class="num">${counts[w] || 0}</span></button>`).join('')}</div>
+        <div class="chips" role="group" aria-label="사람별로 보기"><button class="chip" data-rev-who="" aria-pressed="${!R.who}">모두 <span class="num">${out.length}</span></button>${people.filter((w) => counts[w] || R.who === w).map((w) => `<button class="chip" data-rev-who="${esc(w)}" aria-pressed="${R.who === w}">${esc(w)} <span class="num">${counts[w] || 0}</span></button>`).join('')}</div>
         <label class="sr" for="rev-sort">정렬</label><select id="rev-sort" data-rev-sort><option value="new"${R.sort === 'new' ? ' selected' : ''}>최신순</option><option value="old"${R.sort === 'old' ? ' selected' : ''}>오래된순</option><option value="high"${R.sort === 'high' ? ' selected' : ''}>별점 높은순</option><option value="low"${R.sort === 'low' ? ' selected' : ''}>별점 낮은순</option></select>
       </div>
-      <section class="revlist">${rows || `<div class="empty">${R.who ? '이 사람이 남긴 리뷰가 없습니다.' : '아직 리뷰가 없습니다. 차 상세 화면에서 별점이나 메모를 남기면 여기에 모입니다.'}</div>`}</section>
+      <section class="revlist">${rows || `<div class="empty">${R.who ? '이 사람이 남긴 리뷰가 없습니다.' : '아직 리뷰가 없어요. 마셔 본 차의 상세 화면에서 첫 리뷰를 남겨 보세요.'}</div>`}</section>
       ${list.length > R.n ? `<p style="text-align:center;margin-top:16px"><button class="btn" data-rev-more>더 보기 <span class="num faint">${list.length - R.n}</span></button></p>` : ''}`;
   }
   function vLog() {
@@ -4207,7 +4218,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     }
     function avgLine(teaId) {
       const s = stats(teaId);
-      return `<button class="avgline" data-jump="d-board">${s.rated ? `${starsView(s.avg, true)}<b class="num">${s.avg.toFixed(1)}</b><span>리뷰 ${s.n}개</span>` : `<span>${s.n ? '리뷰 ' + s.n + '개' : '아직 리뷰가 없습니다 · 첫 리뷰 쓰기'}</span>`}</button>`;
+      return `<button class="avgline" data-jump="d-board">${s.rated ? `${starsView(s.avg, true)}<b class="num">${s.avg.toFixed(1)}</b><span>리뷰 ${s.n}개</span>` : `<span>${s.n ? '리뷰 ' + s.n + '개' : '✎ 첫 리뷰 남기기'}</span>`}</button>`;
     }
     function summaryHtml(s) {
       if (!s.n) return '';
@@ -4221,12 +4232,27 @@ and do not perform the modification. Unauthorized copying, modification or redis
         ${e.r ? `<div class="rateline">${starsView(e.r.v, true)}<b class="num">${e.r.v.toFixed(1)}</b></div>` : ''}${e.n ? `<p class="revtxt">${esc(e.n.text)}</p>` : ''}
       </article>`;
     }
+    /* 알록다록 추천: 리뷰가 아니라 도감 데이터(맛·향 수치, 향 메모, 카페인)로 만든 소개 카드 */
+    const FIT = { s: '단맛 나는 차를 좋아하는 분', b: '진하고 쌉쌀한 맛을 좋아하는 분', a: '또렷하고 떫은맛이 있는 차를 좋아하는 분', u: '감칠맛을 좋아하는 분', y: '묵직한 바디감을 좋아하는 분', f: '꽃향을 좋아하는 분', r: '과일향을 좋아하는 분', g: '싱그러운 풀향을 좋아하는 분', n: '고소한 견과류 향을 좋아하는 분', o: '구운 향, 스모키한 향을 좋아하는 분', e: '흙내음 같은 깊은 향을 좋아하는 분', w: '나무 향을 좋아하는 분' };
+    function noteHtml(teaId) {
+      const t = tea(teaId); if (!t || !t.builtin) return '';
+      const fl = t.flavor || {}, top = Object.keys(FIT).filter((k) => fl[k] >= 3).sort((a, b) => fl[b] - fl[a]).slice(0, 3);
+      const first = (t.description || '').split(/(?<=다\.)\s/)[0];
+      if (!top.length && !t.aromaNotes.length && !first) return '';
+      const caf = hasCaf(t);
+      return `<aside class="tnote"><div class="tnote-h"><b>알록다록 추천</b><span>도감 정보로 정리했어요 · 리뷰가 아니에요</span></div>
+        ${first ? `<p class="tnote-lead">${esc(first)}</p>` : ''}
+        ${top.length ? `<div class="tnote-row"><small>이런 분께 잘 맞아요</small><ul>${top.map((k) => `<li>${FIT[k]}</li>`).join('')}</ul></div>` : ''}
+        ${t.aromaNotes.length ? `<div class="tnote-row"><small>향</small><p>${t.aromaNotes.map(esc).join(' · ')}</p></div>` : ''}
+        <div class="tnote-row"><small>카페인</small><p>${caf ? '있어요' : '없어요'}</p></div>
+      </aside>`;
+    }
     function teaHtml(teaId) {
       const s = stats(teaId);
       const list = s.es.map((e) => (e.board ? cardHtml(e.board, false) : recCard(e))).join('');
-      const empty = st.err && BOARD_URL && !st.list.length && !list ? `<div class="empty">${esc(st.err)}</div>` : BOARD_URL && !st.loaded && !list ? '<p class="muted">리뷰를 불러오는 중…</p>' : '<div class="empty">아직 이 차의 리뷰가 없습니다. 첫 리뷰를 남겨 보세요.</div>';
-      if (!BOARD_URL) return summaryHtml(s) + `<div class="blist">${list || '<div class="empty">리뷰 게시판 서버가 아직 연결되지 않았습니다.</div>'}</div>`;
-      return summaryHtml(s) + `<form class="bform" data-bform="${esc(teaId)}">
+      const empty = st.err && BOARD_URL && !st.list.length && !list ? `<div class="empty">${esc(st.err)}</div>` : BOARD_URL && !st.loaded && !list ? '<p class="muted">리뷰를 불러오는 중…</p>' : '<div class="empty firstrev">아직 리뷰가 없어요.<br>이 차를 마셔 봤다면 <b>첫 리뷰의 주인공</b>이 되어 보세요.</div>';
+      if (!BOARD_URL) return noteHtml(teaId) + summaryHtml(s) + `<div class="blist">${list || '<div class="empty">리뷰 게시판 서버가 아직 연결되지 않았습니다.</div>'}</div>`;
+      return noteHtml(teaId) + summaryHtml(s) + `<form class="bform" data-bform="${esc(teaId)}">
           <div class="bf-row"><label class="f">닉네임<input type="text" name="name" maxlength="20" value="${esc(nick())}" autocomplete="off"></label><label class="f">비밀번호<input name="password" type="password" maxlength="64" required autocomplete="new-password" placeholder="4자 이상"></label><label class="f">별점<select name="v">${vOpts(null)}</select></label></div>
           <label class="f">내용<textarea name="text" maxlength="500" placeholder="이 차 어땠나요?"></textarea></label>
           <div class="row"><button class="btn pri" type="submit" ${st.busy ? 'disabled' : ''}>리뷰 등록</button><span class="faint" style="font-size:12.5px">비밀번호는 글을 고치거나 지울 때 씁니다. 잊으면 되찾을 수 없습니다.</span></div>
