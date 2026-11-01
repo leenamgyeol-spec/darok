@@ -133,8 +133,8 @@ a { color: var(--deep); }
 .side .add:hover { background: var(--bg2); }
 .side .foot { font-size: 11px; color: var(--fg3); line-height: 1.5; }
 .main { margin-left: var(--nav); padding: 32px max(16px, env(safe-area-inset-right, 0px)) 120px 40px; }
-.view { max-width: 1040px; margin: 0 auto; animation: viewIn .35s var(--ease); }
-@keyframes viewIn { from { opacity: .4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.view { max-width: 1040px; margin: 0 auto; } /* 화면을 다시 그릴 때마다 움직이는 효과는 두지 않음 (흔들려 보임) */
+html { scrollbar-gutter: stable; } /* 스크롤바가 생겼다 없어져도 화면이 옆으로 밀리지 않게 */
 .tabbar { display: none; }
 .fab { display: none; }
 
