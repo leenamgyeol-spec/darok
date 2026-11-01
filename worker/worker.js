@@ -44,6 +44,10 @@ export default {
       const isAdmin = !!env.ADMIN_PASSWORD && typeof body.password === 'string' && timingSafeEq(body.password, env.ADMIN_PASSWORD);
 
       if (url.pathname === '/reviews') return json(await create(env, body, ip, isAdmin));
+      if (url.pathname === '/admin/check') { // 관리 페이지 로그인: 틀린 시도는 수정·삭제와 같은 횟수 제한을 받음
+        if (!isAdmin) { await rateLimit(env, ip, false, 'edit'); throw new UserError('관리자 비밀번호가 맞지 않습니다.', 403); }
+        return json({ ok: true });
+      }
       const m = url.pathname.match(/^\/reviews\/([a-z0-9]{6,32})\/(edit|delete)$/);
       if (m) return json(await (m[2] === 'edit' ? edit : remove)(env, m[1], body, ip, isAdmin));
       return json({ error: '지원하지 않는 요청입니다.' }, 404);

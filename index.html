@@ -481,6 +481,13 @@ details.adv[open] summary { margin-bottom: 12px; }
 .rb { display: grid; grid-template-columns: 28px 1fr 22px; gap: 8px; align-items: center; font-size: 12px; color: var(--fg3); }
 .rb i { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .rb em { display: block; height: 100%; background: var(--star); border-radius: 3px; }
+.abar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 16px 0 10px; max-width: 860px; }
+.abar input { flex: 1 1 220px; min-width: 0; width: auto; }
+.alist { max-width: 860px; display: grid; gap: 8px; }
+.arow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--sage); border-radius: 8px; background: var(--paper); }
+.arow input[type=checkbox] { width: 18px; height: 18px; margin-top: 3px; }
+.arow > div { display: grid; gap: 4px; }
+.arow .revh time { font-size: 12.5px; color: var(--fg3); }
 .sharednote { margin: -6px 0 6px 28px; font-size: 13px; color: var(--fg2); }
 
 .logrow { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
@@ -2947,7 +2954,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
 
   function render() {
     const v = S.view, root = $('#view');
-    const fn = { log: vLog, reviews: vReviews, home: vHome, catalog: vCatalog, detail: vDetail, mine: vMine, knowledge: vKnowledge, article: vArticle, teaware: vTeaware, settings: vSettings, compare: vCompare }[v.name] || vHome;
+    const fn = { log: vLog, reviews: vReviews, admin: () => Board.adminHtml(), home: vHome, catalog: vCatalog, detail: vDetail, mine: vMine, knowledge: vKnowledge, article: vArticle, teaware: vTeaware, settings: vSettings, compare: vCompare }[v.name] || vHome;
     root.innerHTML = `<div class="view">${fn(v)}</div>`;
     const cur = tabOf(v.name);
     $$('[data-tab]').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === cur ? 'page' : 'false'));
@@ -2956,6 +2963,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     if (v.name === 'detail') mountDetail();
     if (v.name === 'settings') mountSettings();
     if (v.name === 'log') mountLog();
+    if (v.name === 'admin') Board.mountAdmin();
     document.title = (v.name === 'detail' && tea(v.id) ? tea(v.id).nameKo + ' — ' : '') + '알록다록';
   }
 
@@ -3894,7 +3902,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     }
     const sg = t.closest('[data-shared-go]'); if (sg) { S.mine.tab = 'shared'; go('mine'); return; }
     const sy = t.closest('[data-sync]'); if (sy) { Sync.action(sy.dataset.sync); return; }
-    if (Board.click(t)) return;
+    if (Board.click(t) || Board.adminClick(t)) return;
     const rw = t.closest('[data-rev-who]'); if (rw) { S.rev.who = rw.dataset.revWho; S.rev.n = 60; render(); return; }
     if (t.closest('[data-rev-more]')) { S.rev.n += 60; const y = window.scrollY; render(); window.scrollTo(0, y); return; }
     const fd = t.closest('[data-friend-del]'); if (fd) { Sync.delFriend(fd.dataset.friendDel); return; }
@@ -3928,6 +3936,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
     if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName) && !$('#timer')) { e.preventDefault(); if (S.view.name !== 'catalog') go('catalog', { focus: true }); else $('#cat-q').focus(); }
   }
   function onSubmit(e) {
+    if (e.target.closest('[data-admin-login]')) { Board.adminLogin(e); return; }
     if (e.target.closest('[data-nick-form], [data-bform], [data-bedit-form], [data-bdel-form]')) { Board.submit(e); return; }
     if (e.target.closest('[data-friend-form]')) { e.preventDefault(); const i = $('#friend-url'); Sync.addFriend(i.value); i.value = ''; return; }
     const f = e.target.closest('[data-form]'); if (!f) return;
@@ -4160,7 +4169,7 @@ and do not perform the modification. Unauthorized copying, modification or redis
       return j;
     }
     function draw(force) {
-      if (!['detail', 'reviews', 'home', 'settings'].includes(S.view.name)) return;
+      if (!['detail', 'reviews', 'home', 'settings', 'admin'].includes(S.view.name)) return;
       if (!force && document.activeElement && /input|textarea|select/i.test(document.activeElement.tagName)) return;
       const y = window.scrollY; render(); window.scrollTo(0, y);
     }
@@ -4266,7 +4275,66 @@ and do not perform the modification. Unauthorized copying, modification or redis
       if (t.closest('[data-bload]')) { load(); toast('새로 불러오는 중…'); return true; }
       return false;
     }
-    return { load, teaHtml, avgLine, cardHtml, nickHtml, submit, click, list: () => st.list, on: () => !!BOARD_URL };
+
+    /* ── 관리자 리뷰 관리 (#admin, 메뉴에는 없음). 비밀번호는 이 탭의 sessionStorage에만 보관 ── */
+    const AKEY = 'darok-admin';
+    const adm = { sel: new Set(), busy: false };
+    const apw = () => { try { return sessionStorage.getItem(AKEY) || ''; } catch (e) { return ''; } };
+    const setApw = (v) => { try { v ? sessionStorage.setItem(AKEY, v) : sessionStorage.removeItem(AKEY); } catch (e) {} };
+    function adminHtml() {
+      if (!BOARD_URL) return '<h1 style="font-size:28px">리뷰 관리</h1><div class="empty">리뷰 게시판 서버가 연결되지 않았습니다.</div>';
+      if (!apw()) return `<h1 style="font-size:28px">리뷰 관리</h1><p class="muted" style="margin:6px 0 18px">관리자 비밀번호를 넣으면 게시판 리뷰를 모아 보고 지울 수 있습니다. 이 탭을 닫으면 다시 로그인해야 합니다.</p>
+        <form class="row" data-admin-login style="max-width:420px;flex-wrap:nowrap"><input type="password" id="admin-pw" style="flex:1;min-width:0" autocomplete="current-password" placeholder="관리자 비밀번호" aria-label="관리자 비밀번호"><button class="btn pri" type="submit">로그인</button></form>`;
+      const list = st.list.slice().sort((a, b) => b.t - a.t);
+      for (const id of [...adm.sel]) if (!list.some((r) => r.id === id)) adm.sel.delete(id);
+      const today = list.filter((r) => Date.now() - r.t < 86400000).length;
+      const row = (r) => { const t = tea(r.teaId);
+        return `<div class="arow" data-arow="${esc(r.id)}" data-find="${esc((r.name + ' ' + r.text + ' ' + (t ? t.nameKo : '')).toLowerCase())}">
+          <input type="checkbox" data-admin-sel="${esc(r.id)}" ${adm.sel.has(r.id) ? 'checked' : ''} aria-label="선택">
+          <div style="min-width:0"><div class="revh"><b class="who">${esc(r.name)}${r.admin ? ' <span class="pill user">관리자</span>' : ''}</b><time>${esc(new Date(r.t).toLocaleString('ko-KR'))}${r.edited ? ' · 수정됨' : ''}</time></div>
+          ${t ? `<button class="revtea" data-open="${esc(t.id)}"><span class="dot" style="background:${colorOf(t)}"></span><b>${esc(t.nameKo)}</b></button>` : `<span class="faint">알 수 없는 차 (${esc(r.teaId)})</span>`}
+          ${r.v ? `<div class="rateline">${starsView(r.v, true)}<b class="num">${r.v.toFixed(1)}</b></div>` : ''}${r.text ? `<p class="revtxt">${esc(r.text)}</p>` : ''}</div>
+          <button class="btn danger sm" data-admin-del="${esc(r.id)}">삭제</button></div>`; };
+      return `<h1 style="font-size:28px">리뷰 관리</h1>
+        <div class="statline" style="margin:14px 0 6px"><div class="s"><b class="num">${list.length}</b><span>게시판 리뷰</span></div><div class="s"><b class="num">${today}</b><span>최근 24시간</span></div><div class="s"><b class="num">${new Set(list.map((r) => r.name)).size}</b><span>닉네임</span></div></div>
+        <div class="abar"><input type="search" id="admin-q" placeholder="닉네임·내용·차 이름 검색" aria-label="리뷰 검색" autocomplete="off">
+          <button class="btn sm" data-admin-all>${adm.sel.size && adm.sel.size === list.length ? '선택 해제' : '전체 선택'}</button>
+          <button class="btn danger sm" data-admin-delsel ${adm.sel.size ? '' : 'disabled'}>선택 삭제 ${adm.sel.size ? `<span class="num">${adm.sel.size}</span>` : ''}</button>
+          <button class="btn sm" data-bload>새로고침</button><button class="btn ghost sm" data-admin-out>로그아웃</button></div>
+        <div class="alist">${st.err && !list.length ? `<div class="empty">${esc(st.err)}</div>` : !st.loaded ? '<p class="muted">불러오는 중…</p>' : list.length ? list.map(row).join('') : '<div class="empty">게시판 리뷰가 없습니다.</div>'}</div>
+        <p class="disclaim">여기서 지우는 건 게시판 리뷰만입니다. 관리자 기록 파일과 친구 기록은 각자의 GitHub 파일에서 관리합니다. 지운 리뷰는 되돌릴 수 없습니다.</p>`;
+    }
+    function mountAdmin() {
+      const q = $('#admin-q'); if (!q) return;
+      q.addEventListener('input', () => { const v = q.value.trim().toLowerCase(); $$('[data-arow]').forEach((el) => (el.hidden = !!v && !el.dataset.find.includes(v))); });
+    }
+    async function adminDelete(ids) {
+      if (adm.busy || !ids.length) return;
+      if (!confirm(ids.length === 1 ? '이 리뷰를 지울까요? 되돌릴 수 없습니다.' : `리뷰 ${ids.length}개를 지울까요? 되돌릴 수 없습니다.`)) return;
+      adm.busy = true; let ok = 0, fail = '';
+      for (const id of ids) {
+        try { await call('/reviews/' + id + '/delete', { password: apw() }); st.list = st.list.filter((r) => r.id !== id); adm.sel.delete(id); ok++; }
+        catch (e) { if (/이미 지워진/.test(e.message)) { st.list = st.list.filter((r) => r.id !== id); adm.sel.delete(id); continue; } fail = e.message; break; }
+      }
+      adm.busy = false; draw(true);
+      toast(fail ? `${ok}개를 지웠고, 나머지는 실패했습니다: ${fail}` : `리뷰 ${ok}개를 지웠습니다.`);
+      if (/비밀번호/.test(fail)) { setApw(''); draw(true); }
+    }
+    async function adminLogin(e) {
+      e.preventDefault(); const pw = ($('#admin-pw').value || '');
+      if (!pw) return;
+      try { await call('/admin/check', { password: pw }); setApw(pw); adm.sel.clear(); if (!st.loaded) load(); draw(true); toast('관리자로 로그인했습니다.'); }
+      catch (err) { toast(err.message); }
+    }
+    function adminClick(t) {
+      const d = t.closest('[data-admin-del]'); if (d) { adminDelete([d.dataset.adminDel]); return true; }
+      if (t.closest('[data-admin-delsel]')) { adminDelete([...adm.sel]); return true; }
+      if (t.closest('[data-admin-all]')) { if (adm.sel.size && adm.sel.size === st.list.length) adm.sel.clear(); else st.list.forEach((r) => adm.sel.add(r.id)); draw(true); return true; }
+      if (t.closest('[data-admin-out]')) { setApw(''); adm.sel.clear(); draw(true); toast('로그아웃했습니다.'); return true; }
+      const c = t.closest('[data-admin-sel]'); if (c) { c.checked ? adm.sel.add(c.dataset.adminSel) : adm.sel.delete(c.dataset.adminSel); const b = $('[data-admin-delsel]'); if (b) { b.disabled = !adm.sel.size; b.innerHTML = '선택 삭제 ' + (adm.sel.size ? `<span class="num">${adm.sel.size}</span>` : ''); } return true; }
+      return false;
+    }
+    return { load, teaHtml, avgLine, cardHtml, nickHtml, submit, click, adminHtml, mountAdmin, adminLogin, adminClick, list: () => st.list, on: () => !!BOARD_URL };
   })();
 
   /* ───────── 시작 ───────── */
@@ -4283,12 +4351,12 @@ and do not perform the modification. Unauthorized copying, modification or redis
     applyTheme(); rebuild();
     document.addEventListener('click', onClick); document.addEventListener('keydown', onKey); document.addEventListener('submit', onSubmit); document.addEventListener('change', onChange);
     const h = (location.hash || '').slice(1);
-    if (['catalog', 'mine', 'log', 'reviews', 'knowledge', 'settings'].includes(h)) S.view = { name: h };
+    if (['catalog', 'mine', 'log', 'reviews', 'knowledge', 'settings', 'admin'].includes(h)) S.view = { name: h };
     else if (h && D.byIdAll[h]) S.view = { name: 'detail', id: h };
     render();
     Sync.loadShared();
     Board.load();
-    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (D.byIdAll[k]) go('detail', { id: k }); else if (['catalog', 'mine', 'log', 'reviews', 'knowledge', 'settings', 'home'].includes(k)) go(k); });
+    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (D.byIdAll[k]) go('detail', { id: k }); else if (['catalog', 'mine', 'log', 'reviews', 'knowledge', 'settings', 'home', 'admin'].includes(k)) go(k); });
     if (D.errors.length) console.warn('[알록다록 데이터 점검]', D.errors);
   }
   boot();
