@@ -1,0 +1,6 @@
+# 알록다록 사이트 (정적 파일). public/ 은 deploy-site.sh 가 채움
+name = "allokdarok"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
